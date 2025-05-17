@@ -30,26 +30,40 @@ class PVDSteganography:
     def _text_to_bits(self, text):
         """Convert text to a bit sequence."""
         bits = []
+        # For each character, convert to 8 bits
         for char in text:
             ascii_val = ord(char)
             for i in range(7, -1, -1):  # 8 bits for each character
                 bits.append((ascii_val >> i) & 1)
-        # Add terminator sequence
-        for bit in [0, 0, 0, 0, 0, 0, 0, 0]:  # NULL character as terminator
+        
+        # Add terminator sequence - special pattern that's unlikely to appear naturally
+        terminator = [0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0]
+        for bit in terminator:
             bits.append(bit)
         return bits
     
     def _bits_to_text(self, bits):
         """Convert bit sequence back to text."""
         text = ""
-        for i in range(0, len(bits), 8):
-            byte = bits[i:i+8]
-            if all(b == 0 for b in byte):  # Terminator found
+        # Look for terminator pattern
+        terminator_pattern = [0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0]
+        
+        # Process bits in 8-bit chunks
+        i = 0
+        while i <= len(bits) - 8:
+            # Check if we've reached the terminator
+            if i <= len(bits) - 16 and bits[i:i+16] == terminator_pattern:
                 break
+                
+            # Process an 8-bit character
             val = 0
-            for bit in byte:
-                val = (val << 1) | bit
+            for j in range(8):
+                if i + j < len(bits):
+                    val = (val << 1) | bits[i + j]
+                
             text += chr(val)
+            i += 8
+            
         return text
     
     def calculate_capacity(self, image_path):
@@ -198,6 +212,7 @@ class PVDSteganography:
             raise FileNotFoundError(f"Could not load image: {stego_path}")
         
         extracted_bits = []
+        terminator_pattern = [0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0]
         
         # Process each color channel
         for channel in range(3):
@@ -231,10 +246,12 @@ class PVDSteganography:
                             bit = (value >> i) & 1
                             extracted_bits.append(bit)
                             
-                            # Check for terminator (8 consecutive zeros)
-                            if len(extracted_bits) >= 8:
-                                last_8_bits = extracted_bits[-8:]
-                                if all(b == 0 for b in last_8_bits):
+                            # Check for terminator pattern
+                            if len(extracted_bits) >= 16:
+                                last_16_bits = extracted_bits[-16:]
+                                if last_16_bits == terminator_pattern:
+                                    # Remove the terminator pattern from the extracted bits
+                                    extracted_bits = extracted_bits[:-16]
                                     found_terminator = True
                                     break
                     
@@ -249,9 +266,8 @@ class PVDSteganography:
         
         # Calculate and display extraction statistics
         extracted_bytes = len(extracted_bits) // 8
-        extracted_chars = extracted_bytes - 1  # Subtract terminator
         
-        print(f"Extracted data: {extracted_chars} characters ({extracted_bytes} bytes)")
+        print(f"Extracted data: {extracted_bytes} characters ({extracted_bytes} bytes)")
         
         # Convert extracted bits to text
         return self._bits_to_text(extracted_bits)
