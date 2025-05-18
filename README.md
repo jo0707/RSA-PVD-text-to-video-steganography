@@ -30,7 +30,7 @@ This project provides a secure method for hiding text messages in images using t
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/yourusername/RSA-PVD-text-to-video-steganography.git
+git clone https://github.com/jo0707/RSA-PVD-text-to-video-steganography.git
 cd RSA-PVD-text-to-video-steganography
 ```
 
@@ -50,7 +50,7 @@ python main.py
 
 ### Options
 
-1. **Hide text in image**:
+1. **Hide text in video**:
 
     - Takes text input and hides it in the specified image file
     - Automatically encrypts the text using RSA
@@ -80,6 +80,18 @@ python main.py
 -   Modifies these differences to embed message bits
 -   Uses a special terminator pattern to mark the end of the message
 -   Distributes the message across RGB channels for higher capacity
+
+## Video Steganography Progress
+
+This project now supports **video steganography using PVD** for selected frames:
+
+-   Text is encrypted with RSA, then hidden in multiple video frames using the PVD method.
+-   Frames are extracted from the video, the message is embedded in one or more frames, and the frames are recombined into a lossless video (AVI/FFV1 or MJPEG).
+-   Extraction and decryption are supported for stego video.
+-   Lossless processing ensures the PVD data is preserved and can be read back correctly.
+-   Frame management and recombination are handled automatically.
+
+**Note:** Only some frames are used for steganography, not the entire video. This increases security and reduces visual impact.
 
 ## Advanced Features
 
