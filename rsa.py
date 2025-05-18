@@ -1,3 +1,4 @@
+import binascii
 import base64
 import os
 from Crypto.PublicKey import RSA
@@ -10,7 +11,6 @@ def generate_rsa_keys(key_size=2048):
     private_key = key.export_key()
     public_key = key.publickey().export_key()
     
-    # Save keys to files (optional)
     with open("private_key.pem", "wb") as priv_file:
         priv_file.write(private_key)
     with open("public_key.pem", "wb") as pub_file:
@@ -18,9 +18,7 @@ def generate_rsa_keys(key_size=2048):
     
     return private_key, public_key
 
-# Fungsi untuk enkripsi teks (dengan kunci publik)
-def encrypt_message(message: str) -> bytes:
-    # if no public key is found, return as is
+def encrypt_message(message: str) -> str:
     if not os.path.exists("public_key.pem"):
         print("Public key not found. Returning original message.")
         return message
@@ -33,8 +31,9 @@ def encrypt_message(message: str) -> bytes:
     cipher_rsa = PKCS1_OAEP.new(public_key)
     encrypted = cipher_rsa.encrypt(message.encode())
     
-    # return encrypted as base64 string
-    return base64.b64encode(encrypted).decode('utf-8')
+    # Convert encrypted data to hexadecimal string instead of base64
+    hex_str = binascii.hexlify(encrypted).decode('ascii')
+    return hex_str
 
 # Fungsi untuk dekripsi teks terenkripsi (dengan kunci privat)
 def decrypt_message(ciphertext: str) -> str:
@@ -42,56 +41,79 @@ def decrypt_message(ciphertext: str) -> str:
         print("Private key not found. Returning original message.")
         return ciphertext
     
+    # Early check for minimum length requirement
+    if not ciphertext or len(ciphertext) < 10:
+        print("Warning: Input data is too short to be an encrypted message")
+        return "The extracted data is not a valid encrypted message or is corrupted"
+    
     # Load private key from file
     with open("private_key.pem", "rb") as priv_file:
         private_key_bytes = priv_file.read()
     
     try:
-        # Clean the ciphertext - remove any non-base64 characters
+        # Clean the ciphertext - remove any non-hex characters
         cleaned_ciphertext = ''.join(c for c in ciphertext if c in 
-                                  'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=')
+                                  '0123456789abcdefABCDEF')
         
-        # Check if the cleaned string is empty
+        # Check if the cleaned string is empty or too short
         if not cleaned_ciphertext:
-            raise ValueError("No valid base64 characters found in the input")
-            
-        # Make sure the length is valid for base64
-        padding_needed = len(cleaned_ciphertext) % 4
-        if padding_needed:
-            cleaned_ciphertext += '=' * (4 - padding_needed)
+            raise ValueError("No valid hex characters found in the input")
+        
+        # Calculate expected length based on key size
+        private_key = RSA.import_key(private_key_bytes)
+        key_size_bytes = private_key.size_in_bytes()
+        min_expected_hex_length = key_size_bytes * 2  # Each byte is 2 hex chars
+        
+        if len(cleaned_ciphertext) < min_expected_hex_length:
+            print(f"Warning: Hex data too short ({len(cleaned_ciphertext)} chars), expected at least {min_expected_hex_length} chars")
+            # If it's significantly shorter, likely not an encrypted message
+            if len(cleaned_ciphertext) < min_expected_hex_length // 2:
+                # Try to interpret as plain text if short
+                if all(32 <= int(cleaned_ciphertext[i:i+2], 16) <= 126 for i in range(0, len(cleaned_ciphertext), 2) if i+1 < len(cleaned_ciphertext)):
+                    print("Data may be plain text rather than encrypted")
+                    # Try to convert hex to ASCII if it looks like ASCII
+                    try:
+                        if len(cleaned_ciphertext) % 2 != 0:
+                            cleaned_ciphertext = '0' + cleaned_ciphertext
+                        possible_text = bytes.fromhex(cleaned_ciphertext).decode('ascii', errors='replace')
+                        return possible_text
+                    except:
+                        pass
+                return f"The extracted data is too short to be a valid RSA encrypted message (got {len(cleaned_ciphertext)//2} bytes, need {key_size_bytes} bytes)"
+
+        # Ensure length is even for proper hex decoding
+        if len(cleaned_ciphertext) % 2 != 0:
+            cleaned_ciphertext = '0' + cleaned_ciphertext
             
         try:
-            # Decode base64
-            unbase64_ciphertext = base64.b64decode(cleaned_ciphertext)
+            # Decode hex string
+            binary_data = binascii.unhexlify(cleaned_ciphertext)
             
-            # RSA with PKCS1_OAEP has a specific length requirement based on key size
+            # Pad if needed
+            if len(binary_data) < key_size_bytes:
+                # Pad with zeros to match the expected RSA block size
+                binary_data = binary_data.ljust(key_size_bytes, b'\0')
+                print(f"Warning: Data was padded to match RSA block size ({key_size_bytes} bytes)")
+            
             # Try decrypting
-            private_key = RSA.import_key(private_key_bytes)
             cipher_rsa = PKCS1_OAEP.new(private_key)
-            decrypted = cipher_rsa.decrypt(unbase64_ciphertext)
-            return decrypted.decode('utf-8', errors='replace')
-        except ValueError as e:
-            # This might happen if the base64 string is corrupted but still valid base64
-            # Try to reconstruct from partial data
-            if "incorrect length" in str(e):
-                # Try to trim the data to match the expected length
-                # Default RSA-2048 block size is 256 bytes
-                key_size = RSA.import_key(private_key_bytes).size_in_bytes()
-                if len(unbase64_ciphertext) > key_size:
-                    # Try to use only the first block
-                    print(f"Trying to recover from corrupted data (using first {key_size} bytes)...")
+            try:
+                decrypted = cipher_rsa.decrypt(binary_data)
+                return decrypted.decode('utf-8', errors='replace')
+            except ValueError as e:
+                if "Ciphertext with incorrect length" in str(e) and len(binary_data) > key_size_bytes:
+                    # Try trimming to exactly one block
+                    print(f"Trying with first block of data only...")
+                    trimmed_data = binary_data[:key_size_bytes]
                     try:
-                        private_key = RSA.import_key(private_key_bytes)
-                        cipher_rsa = PKCS1_OAEP.new(private_key)
-                        decrypted = cipher_rsa.decrypt(unbase64_ciphertext[:key_size])
+                        decrypted = cipher_rsa.decrypt(trimmed_data)
                         return decrypted.decode('utf-8', errors='replace')
                     except:
-                        # If that fails, try the original approach but with a warning
-                        raise ValueError("Data is corrupted and cannot be decrypted")
-                else:
-                    raise ValueError("Data is too short for RSA decryption")
-            else:
+                        raise ValueError(f"Unable to decrypt with first {key_size_bytes} bytes of data")
                 raise
+        except Exception as e:
+            print(f"Hex decoding or RSA decryption error: {e}")
+            raise
     except Exception as e:
         print(f"Decryption error: {e}")
         # If decryption fails, return a message
