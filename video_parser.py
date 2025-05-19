@@ -7,6 +7,11 @@ def extract_frames(video_path = 'input_video.mp4', frames_dir = 'frames'):
     """
     if not os.path.exists(frames_dir):
         os.makedirs(frames_dir)
+    
+    # remove existing frames
+    for f in os.listdir(frames_dir):
+        os.remove(os.path.join(frames_dir, f))
+    
     cap = cv2.VideoCapture(video_path)
     count = 0
     while True:

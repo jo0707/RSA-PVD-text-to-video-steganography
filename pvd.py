@@ -70,8 +70,10 @@ def embed_pvd(image_path, message, output_path='stego_rgb.png'):
 
 # Fungsi untuk mengekstrak pesan dari gambar RGB
 def extract_pvd(stego_path):
+    print("Ekstraksi pesan dari gambar...")
     img = Image.open(stego_path).convert('RGB')
     pixels = list(img.getdata())
+    print(f"Jumlah pixel: {len(pixels)}")
 
     bits = ''
     for i in range(0, len(pixels)-1, 2):
@@ -109,7 +111,7 @@ def check_pvd_capacity(image_path):
 
 # Example usage
 if __name__ == "__main__":
-    image_path = 'original_image.png'
+    image_path = 'original_image_320x210.png'
     output_path = 'output_image.png'
     message = "Pesan rahasia di gambar RGB"
 
