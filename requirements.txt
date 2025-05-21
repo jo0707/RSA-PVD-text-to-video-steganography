@@ -1,2 +1,7 @@
 pillow==11.2.1
 pycryptodome==3.23.0
+numpy
+opencv-python
+pandas
+matplotlib
+pillow

@@ -1,23 +1,21 @@
 from colorama import init, Fore, Style
-import pvd
-import rsa
 import os
-import video_parser
+
+import src.pvd as pvd
+import src.rsa as rsa
+import src.video_parser as video_parser
 
 # Colorama initialization
 init(autoreset=True)
 
-IMAGE_PATH = "original_image.png"
-VIDEO_PATH = "original_video.mp4"
-OUTPUT_IMAGE_PATH = "output_image.png"
-OUTPUT_VIDEO_PATH = "output_video.avi"
-FRAMES_DIR = "frames"
-OUTPUT_FRAMES_DIR = "frames_output"
+IMAGE_PATH = os.path.join("input", "original_image.png")
+VIDEO_PATH = os.path.join("input", "original_video.mp4")
+OUTPUT_IMAGE_PATH = os.path.join("output", "output_image.png")
+OUTPUT_VIDEO_PATH = os.path.join("output", "output_video.avi")
+FRAMES_DIR = os.path.join("input", "frames")
+OUTPUT_FRAMES_DIR = os.path.join("output", "frames")
 
 def encrypt_video(video_path, message, output_video_path):
-    if not video_path:
-        video_path = "original_video.mp4"
-    
     # Extract frames from video
     video_parser.extract_frames(video_path, FRAMES_DIR)
     
@@ -29,7 +27,7 @@ def encrypt_video(video_path, message, output_video_path):
     # Combine frames back to video
     video_parser.combine_frames_to_video(FRAMES_DIR, output_video_path)
     print(Fore.GREEN + Style.BRIGHT + "Pesan telah dienkripsi dan disisipkan ke dalam video.")
-    print(Fore.YELLOW + "Pastikan pengiriman video ti5dak terkompresi.")
+    print(Fore.YELLOW + "Pastikan pengiriman video tidak terkompresi.")
     print(Fore.CYAN + f"Pesan Terenkripsi: {encrypted_message}")
 
 def decrypt_video(stego_video_path):
@@ -47,27 +45,16 @@ def decrypt_video(stego_video_path):
     print(Fore.GREEN + Style.BRIGHT + f"Pesan yang diekstrak dan didekripsi: {decrypted_message}")
 
 def encrypt_image(image_path, message, output_image_path):
-    encrypted_message = rsa.encrypt_message_base64(message)
-    
-    if not image_path:
-        image_path = "original_image.png"
-    
     if not os.path.exists(image_path):
         print(Fore.RED + Style.BRIGHT + f"File gambar tidak ditemukan: {image_path}")
         return
     
-    output_image_path = "output_image.png"
+    encrypted_message = rsa.encrypt_message_base64(message)
     pvd.embed_pvd(image_path, encrypted_message, output_image_path)
     print(Fore.GREEN + Style.BRIGHT + "Pesan telah dienkripsi dan disisipkan ke dalam gambar.")
     print(Fore.CYAN + f"Pesan: {encrypted_message}")
             
 def decrypt_image(stego_image_path):
-    # Extract and decrypt message from image
-    stego_image_path = input(Fore.YELLOW + "Masukkan path gambar stego (output_image.png): ")
-    
-    if not stego_image_path:
-        stego_image_path = "output_image.png"
-    
     extracted_message = pvd.extract_pvd(stego_image_path)
     decrypted_message = rsa.decrypt_message_base64(extracted_message)
     print(Fore.GREEN + Style.BRIGHT + f"Pesan yang diekstrak dan didekripsi: {decrypted_message}")
@@ -87,21 +74,22 @@ Pilih opsi:
 Pilihan:
             """)
         if choice == '1':
-            video_path = input(Fore.YELLOW + "Masukkan path video asli (original_video.mp4): ")
-            message = input(Fore.YELLOW + "Masukkan pesan yang ingin disisipkan: ")
-            encrypt_video(video_path, message, OUTPUT_VIDEO_PATH)
+            video_path = input(Fore.YELLOW + "Masukkan path video asli (original_video.mp4): ") or VIDEO_PATH
+            message = input(Fore.YELLOW + "Masukkan pesan yang ingin disisipkan: ") or "Pesan rahasia"
+            encrypt_video(video_path, message, OUTPUT_VIDEO_PATH) 
         elif choice == '2':
-            stego_video_path = input(Fore.YELLOW + "Masukkan path video stego (output_video.avi): ")
+            stego_video_path = input(Fore.YELLOW + "Masukkan path video stego (output_video.avi): ") or "output_video.avi"
             decrypt_video(stego_video_path)
         if choice == '3':
-            image_path = input(Fore.YELLOW + "Masukkan path gambar asli (original_image.png): ")
-            message = input(Fore.YELLOW + "Masukkan pesan yang ingin disisipkan: ")
-            encrypt_image(image_path, message, "output_image.png")
+            image_path = input(Fore.YELLOW + "Masukkan path gambar asli (original_image.png): ") or IMAGE_PATH
+            output_image_path = input(Fore.YELLOW + "Masukkan path gambar output (output_image.png): ") or OUTPUT_IMAGE_PATH
+            message = input(Fore.YELLOW + "Masukkan pesan yang ingin disisipkan: ") or "Pesan rahasia"
+            encrypt_image(image_path, message, image_path, output_image_path)
         elif choice == '4':
-            stego_image_path = input(Fore.YELLOW + "Masukkan path gambar stego (output_image.png): ")
+            stego_image_path = input(Fore.YELLOW + "Masukkan path gambar stego (output_image.png): ") or "output_image.png"
             decrypt_image(stego_image_path)
         elif choice == '5':
-            print(Fore.MAGENTA + Style.BRIGHT + "Keluar dari program.")
+            print(Fore.MAGENTA + Style.BRIGHT + "Keluar dari program.") 
             break
 
 if __name__ == "__main__":

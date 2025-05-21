@@ -1,0 +1,5 @@
+Image1,Image2,PSNR
+psnr\before.png,psnr\after.png,64.93417759245253
+psnr\before.png,psnr\after.png,66.86260744395054
+psnr\before.png,psnr\after.png,67.93245554883691
+psnr\before.png,psnr\after.png,67.99168393581819
