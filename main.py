@@ -31,9 +31,6 @@ def encrypt_video(video_path, message, output_video_path):
     print(Fore.CYAN + f"Pesan Terenkripsi: {encrypted_message}")
 
 def decrypt_video(stego_video_path):
-    if not stego_video_path:
-        stego_video_path = "output_video.avi"
-    
     # Extract frames from stego video
     video_parser.extract_frames(stego_video_path, OUTPUT_FRAMES_DIR)
     
@@ -43,6 +40,8 @@ def decrypt_video(stego_video_path):
     print(Fore.CYAN + f"Pesan diekstrak (Terenkripsi): {extracted_message}")
     decrypted_message = rsa.decrypt_message_base64(extracted_message)
     print(Fore.GREEN + Style.BRIGHT + f"Pesan yang diekstrak dan didekripsi: {decrypted_message}")
+    
+    return decrypted_message
 
 def encrypt_image(image_path, message, output_image_path):
     if not os.path.exists(image_path):
@@ -78,7 +77,7 @@ Pilihan:
             message = input(Fore.YELLOW + "Masukkan pesan yang ingin disisipkan: ") or "Pesan rahasia"
             encrypt_video(video_path, message, OUTPUT_VIDEO_PATH) 
         elif choice == '2':
-            stego_video_path = input(Fore.YELLOW + "Masukkan path video stego (output_video.avi): ") or "output_video.avi"
+            stego_video_path = input(Fore.YELLOW + "Masukkan path video stego (output_video.avi): ") or OUTPUT_VIDEO_PATH
             decrypt_video(stego_video_path)
         if choice == '3':
             image_path = input(Fore.YELLOW + "Masukkan path gambar asli (original_image.png): ") or IMAGE_PATH
@@ -86,7 +85,7 @@ Pilihan:
             message = input(Fore.YELLOW + "Masukkan pesan yang ingin disisipkan: ") or "Pesan rahasia"
             encrypt_image(image_path, message, image_path, output_image_path)
         elif choice == '4':
-            stego_image_path = input(Fore.YELLOW + "Masukkan path gambar stego (output_image.png): ") or "output_image.png"
+            stego_image_path = input(Fore.YELLOW + "Masukkan path gambar stego (output_image.png): ") or OUTPUT_IMAGE_PATH
             decrypt_image(stego_image_path)
         elif choice == '5':
             print(Fore.MAGENTA + Style.BRIGHT + "Keluar dari program.") 

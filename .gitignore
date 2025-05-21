@@ -1,6 +1,7 @@
 frames/**
 /input/frames/**
 output/frames/**
+output/**
 frames_output/**
 output_video.avi
 tempCodeRunnerFile.py
