@@ -29,7 +29,7 @@ def encrypt_video(video_path, message, output_video_path):
     # Combine frames back to video
     video_parser.combine_frames_to_video(FRAMES_DIR, output_video_path)
     print(Fore.GREEN + Style.BRIGHT + "Pesan telah dienkripsi dan disisipkan ke dalam video.")
-    print(Fore.YELLOW + "Pastikan pengiriman video tidak terkompresi.")
+    print(Fore.YELLOW + "Pastikan pengiriman video ti5dak terkompresi.")
     print(Fore.CYAN + f"Pesan Terenkripsi: {encrypted_message}")
 
 def decrypt_video(stego_video_path):
